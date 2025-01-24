@@ -1,0 +1,313 @@
+{
+    "version": 10,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 31,
+        "patch": 0
+      },
+    "configurePresets": [
+        {
+            "name": "cmake",
+            "hidden": true,
+            "description": "cmake setting",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "debug",
+            "hidden": true,
+            "description": "debug",
+            "inherits": [
+                "cmake"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release",
+            "hidden": true,
+            "description": "release",
+            "inherits": [
+                "cmake"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ninja",
+            "hidden": true,
+            "generator": "Ninja"
+        },
+        {
+            "name": "nmake",
+            "hidden": true,
+            "generator": "NMake Makefiles"
+        },
+        {
+            "name": "unix",
+            "hidden": true,
+            "generator": "Unix Makefiles"
+        },
+        {
+            "name": "mingw",
+            "hidden": true,
+            "generator": "MinGW Makefiles"
+        },
+        {
+            "name": "windows-only",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "macos-only",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            }
+        },
+        {
+            "name": "vs",
+            "hidden": true,
+            "inherits":[
+                "windows-only"
+            ],
+            "environment": {
+                "DOTNET_CLI_UI_LANGUAGE":"en-US"
+            },
+            "generator": "Visual Studio 17 2022"
+        },
+        {
+            "name": "llvm-mingw",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_SYSTEM_NAME": "Windows",
+                "VCPKG_HOST_TRIPLET": "x64-mingw-dynamic",
+                "VCPKG_TARGET_TRIPLET": "x64-mingw-dynamic",
+                "CMAKE_C_COMPILER": "x86_64-w64-mingw32-clang",
+                "CMAKE_CXX_COMPILER": "x86_64-w64-mingw32-clang++",
+                "CMAKE_C_COMPILER_TARGET":"x86_64-w64-mingw32",
+                "CMAKE_CXX_COMPILER_TARGET":"x86_64-w64-mingw32"
+            }
+        },
+        {
+            "name": "windows-mingw",
+            "hidden": true,
+            "inherits":[
+                "windows-only",
+                "mingw",
+                "llvm-mingw"
+            ],
+            "environment": {
+                "PATH":"$penv{PATH}"
+            }
+        },
+        {
+            "name": "macos-mingw",
+            "hidden": true,
+            "inherits":[
+                "macos-only",
+                "llvm-mingw"
+            ],
+            "environment": {
+                "MACOSX_DEPLOYMENT_TARGET": "14",
+                "PATH":"$penv{PATH}:/Users/admin/work/llvm-mingw-20250114-ucrt-macos-universal/bin"
+            }
+        },
+        {
+            "name": "platform-Win32",
+            "hidden": true,
+            "inherits":[
+                "vs"
+            ],
+            "architecture":{
+                "strategy": "set",
+                "value": "Win32,version=10.0"
+            }
+        },
+        {
+            "name": "platform-x64",
+            "hidden": true,
+            "inherits":[
+                "vs"
+            ],
+            "architecture":{
+                "strategy": "set",
+                "value": "x64,version=10.0"
+            }
+        },
+        {
+            "name": "toolset-x86",
+            "hidden": true,
+            "inherits":[
+                "vs"
+            ],
+            "toolset":{
+                "strategy": "set",
+                "value": "v143,host=x86"
+            }
+        },
+        {
+            "name": "toolset-x64",
+            "hidden": true,
+            "inherits":[
+                "vs"
+            ],
+            "toolset":{
+                "strategy": "set",
+                "value": "v143,host=x64"
+            }
+        },
+        {
+            "name": "vs-debug-x64",
+            "inherits":[
+                "cmake",
+                "debug",
+                "toolset-x64",
+                "platform-x64"
+            ]
+        },
+        {
+            "name": "vs-release-x64",
+            "inherits":[
+                "cmake",
+                "release",
+                "toolset-x64",
+                "platform-x64"
+            ]
+        },
+        {
+            "name": "macos-mingw-debug",
+            "inherits":[
+                "debug",
+                "macos-mingw"
+            ]
+        },
+        {
+            "name": "macos-mingw-release",
+            "inherits":[
+                "release",
+                "macos-mingw"
+            ]
+        },
+        {
+            "name": "windows-mingw-debug",
+            "inherits":[
+                "debug",
+                "windows-mingw"
+            ]
+        },
+        {
+            "name": "windows-mingw-release",
+            "inherits":[
+                "release",
+                "windows-mingw"
+            ]
+        },
+        {
+            "name": "msvc-nmake-debug-x64",
+            "inherits":[
+                "debug",
+                "nmake",
+                "windows-only"
+            ],
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            }
+        },
+        {
+            "name": "msvc-nmake-release-x64",
+            "inherits":[
+                "release",
+                "nmake",
+                "windows-only"
+            ],
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            }
+        },
+        {
+            "name": "macos-debug",
+            "inherits":[
+                "debug",
+                "macos-only"
+            ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-osx-dynamic"
+            }
+        },
+        {
+            "name": "macos-release",
+            "inherits":[
+                "release",
+                "macos-only"
+            ],
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-osx-dynamic"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "vs-debug-x64",
+            "configurePreset": "vs-debug-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "vs-release-x64",
+            "configurePreset": "vs-release-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-mingw-debug",
+            "configurePreset": "windows-mingw-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-mingw-release",
+            "configurePreset": "windows-mingw-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "msvc-nmake-debug-x64",
+            "configurePreset": "msvc-nmake-debug-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "msvc-nmake-release-x64",
+            "configurePreset": "msvc-nmake-release-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-mingw-debug",
+            "configurePreset": "macos-mingw-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-mingw-release",
+            "configurePreset": "macos-mingw-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "macos-debug",
+            "configurePreset": "macos-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-release",
+            "configurePreset": "macos-release",
+            "configuration": "Release"
+        }
+    ]
+
+}
