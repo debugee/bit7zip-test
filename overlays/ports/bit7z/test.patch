@@ -1,0 +1,13 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f28aaec2..bed9f211 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -278,3 +278,7 @@ install(
+ 
+ install(EXPORT unofficial-bit7z-targets FILE unofficial-bit7z-targets.cmake NAMESPACE unofficial::bit7z:: DESTINATION share/unofficial-bit7z)
+ 
++target_compile_options(${LIB_TARGET} PRIVATE
++    $<$<CXX_COMPILER_ID:GNU>:-Wno-cast-function-type>
++    $<$<CXX_COMPILER_ID:Clang>:-Wno-cast-function-type>
++)
+\ No newline at end of file

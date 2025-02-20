@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "dependencies": [
+    "bit7z",
+    "libiconv"
+  ],
+  "overrides": [
+    {
+      "name": "bit7z",
+      "version": "4.0.8"
+    }
+  ],
+  "builtin-baseline": "6f29f12e82a8293156836ad81cc9bf5af41fe836"
+}

@@ -1,0 +1,110 @@
+name: Build and Release
+on:
+  push:
+    tags:
+      - "*"
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++
+          cmake --version
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+          ./vcpkg/vcpkg --version
+      - name: Install dependencies on Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          cmake --version
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          ./vcpkg/vcpkg --version
+
+      - name: Install dependencies on macOS
+        if: ${{ (matrix.os == 'macos-latest') || (matrix.os == 'macos-13') }}
+        run: |
+          brew install cmake
+          cmake --version
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+          ./vcpkg/vcpkg --version
+
+      - name: Install LLVM-MinGW on macos-13
+        if: matrix.os == 'macos-13'
+        run: |
+          curl -L https://github.com/mstorsjo/llvm-mingw/releases/download/20240619/llvm-mingw-20240619-ucrt-macos-universal.tar.xz -o llvm-mingw-20240619-ucrt-macos-universal.tar.xz
+          tar -xf llvm-mingw-20240619-ucrt-macos-universal.tar.xz
+          mv llvm-mingw-20240619-ucrt-macos-universal llvm-mingw
+
+      # - name: Setup MinGW
+      #   if: matrix.os == 'ubuntu-latest'
+      #   uses: egor-tensin/setup-mingw@v2
+      #   with:
+      #     cc: 0
+    
+      # - name: Build with MinGW
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     cmake -S . -B build-mingw \
+      #       -DCMAKE_BUILD_TYPE=Release \
+      #       -DCMAKE_SYSTEM_NAME=Windows \
+      #       -DCMAKE_C_COMPILER_TARGET=x86_64-w64-mingw32 \
+      #       -DCMAKE_CXX_COMPILER_TARGET=x86_64-w64-mingw32 \
+      #       -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+      #       -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
+      #     cmake --build build-mingw --target install --config Release
+
+      # - name: Package with MinGW
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
+      #     cmake --build build-mingw --target package --config Release
+
+      - name: Build with LLVM-MinGW
+        if: matrix.os == 'macos-13'
+        run: |
+          export PATH="${{ github.workspace }}/llvm-mingw/bin:$PATH"
+          cmake -S . -B build-llvm-mingw \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_C_COMPILER_TARGET=x86_64-w64-mingw32 \
+            -DCMAKE_CXX_COMPILER_TARGET=x86_64-w64-mingw32 \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-clang \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-clang++
+          cmake --build build-llvm-mingw --target install --config Release
+
+      - name: Package with LLVM-MinGW
+        if: matrix.os == 'macos-13'
+        run: |
+          export PATH="${{ github.workspace }}/llvm-mingw/bin:$PATH"
+          cmake --build build-llvm-mingw --target package --config Release
+
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE:STRING=Release
+          cmake --build build --target install --config Release
+
+      - name: Package
+        run: |
+          cmake --build build --target package --config Release
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body: "Release all platforms"
+          files: |
+            build/*.zip
+            build-mingw/*.zip
+            build-llvm-mingw/*.zip
