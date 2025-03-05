@@ -104,6 +104,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           body: "Release all platforms"
+          repository: cqz7969/abc
+          token: ${{ secrets.aa }}
           files: |
             build/*.zip
             build-mingw/*.zip
