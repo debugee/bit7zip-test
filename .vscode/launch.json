@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "cmake",
+            "request": "launch",
+            "name": "CMake: Externally launched",
+            "cmakeDebugType": "external",
+            "pipeName": "/tmp/vcpkg_configure_pipe",
+        },
+        {
             "type": "lldb",
             "request": "launch",
             "name": "Debug",

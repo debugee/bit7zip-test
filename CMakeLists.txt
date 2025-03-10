@@ -26,6 +26,10 @@ elseif (UNIX)
     set(VCPKG_TARGET_TRIPLET "${ARCH}-linux-dynamic")
 endif()
 
+#https://github.com/microsoft/vcpkg/discussions/32643
+#set(VCPKG_INSTALL_OPTIONS "--binarysource=clear;--x-cmake-configure-debug=/tmp/vcpkg_configure_pipe\;bit7z")
+#set(VCPKG_INSTALL_OPTIONS "--binarysource=clear;--x-cmake-debug=/tmp/vcpkg_configure_pipe\;bit7z")
+
 set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_toolchain.cmake")
 set(VCPKG_OVERLAY_TRIPLETS "${CMAKE_CURRENT_SOURCE_DIR}/overlays/triplets")
 set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_SOURCE_DIR}/overlays/ports")
