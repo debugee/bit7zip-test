@@ -48,28 +48,28 @@ jobs:
           tar -xf llvm-mingw-20240619-ucrt-macos-universal.tar.xz
           mv llvm-mingw-20240619-ucrt-macos-universal llvm-mingw
 
-      # - name: Setup MinGW
-      #   if: matrix.os == 'ubuntu-latest'
-      #   uses: egor-tensin/setup-mingw@v2
-      #   with:
-      #     cc: 0
+      - name: Setup MinGW
+        if: matrix.os == 'ubuntu-latest'
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          cc: 0
     
-      # - name: Build with MinGW
-      #   if: matrix.os == 'ubuntu-latest'
-      #   run: |
-      #     cmake -S . -B build-mingw \
-      #       -DCMAKE_BUILD_TYPE=Release \
-      #       -DCMAKE_SYSTEM_NAME=Windows \
-      #       -DCMAKE_C_COMPILER_TARGET=x86_64-w64-mingw32 \
-      #       -DCMAKE_CXX_COMPILER_TARGET=x86_64-w64-mingw32 \
-      #       -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
-      #       -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
-      #     cmake --build build-mingw --target install --config Release
+      - name: Build with MinGW
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake -S . -B build-mingw \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=Windows \
+            -DCMAKE_C_COMPILER_TARGET=x86_64-w64-mingw32 \
+            -DCMAKE_CXX_COMPILER_TARGET=x86_64-w64-mingw32 \
+            -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
+            -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++
+          cmake --build build-mingw --target install --config Release
 
-      # - name: Package with MinGW
-      #   if: matrix.os == 'ubuntu-latest'
-      #   run: |
-      #     cmake --build build-mingw --target package --config Release
+      - name: Package with MinGW
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cmake --build build-mingw --target package --config Release
 
       - name: Build with LLVM-MinGW
         if: matrix.os == 'macos-13'
