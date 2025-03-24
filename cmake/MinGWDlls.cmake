@@ -96,14 +96,18 @@ function(get_exception_dll_name output_var)
         return 0;
     }
     ")
+    string(RANDOM LENGTH 32 _file_name)
+    set(_file_name "${CMAKE_CURRENT_BINARY_DIR}/${_file_name}")
     try_compile(_compileResultVar
         SOURCE_FROM_VAR "get_exception_dll_name.cpp" _source
-        COPY_FILE "${CMAKE_CURRENT_BINARY_DIR}/get_exception_dll_name.exe"
+        COPY_FILE "${_file_name}"
         OUTPUT_VARIABLE OUTPUT)
     if (NOT _compileResultVar)
         return()
     endif()
-    get_dll_dependencies("${CMAKE_CURRENT_BINARY_DIR}/get_exception_dll_name.exe" import_dlls)
+    
+    
+    get_dll_dependencies("${_file_name}" import_dlls)
     foreach(dll_name ${import_dlls})
         string(REGEX MATCH "^libgcc_s_.+\.dll$" dll_name_var "${dll_name}")
         if (dll_name_var)
@@ -111,7 +115,7 @@ function(get_exception_dll_name output_var)
             break()
         endif()
     endforeach()
-    file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/get_exception_dll_name.exe")
+    file(REMOVE "${_file_name}")
 endfunction()
 
 function(get_mingw_dlls output_var)
