@@ -34,11 +34,21 @@ function(get_dll_dependencies dll_name output_dlls)
         return()
     endif()
 
-    if(NOT EXISTS "${CMAKE_OBJDUMP}")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        find_program(CMAKE_DUMPBIN dumpbin.exe REQUIRED)
+        set(CMAKE_DUMPBIN_ARGS "-DEPENDENTS")
+        set(CMAKE_DUMPBIN_REGEXP "[ \r\n\t]*    ([^ \r\n\t]+\.dll)\n")
+    else()
+        set(CMAKE_DUMPBIN_ARGS "-p")
+        set(CMAKE_DUMPBIN "${CMAKE_OBJDUMP}")
+        set(CMAKE_DUMPBIN_REGEXP "[ \t\r\n]+DLL Name: ([^\n]+\.dll)\n")
+    endif()
+
+    if(NOT EXISTS "${CMAKE_DUMPBIN}")
         return()
     endif()
 
-    execute_process(COMMAND ${CMAKE_OBJDUMP} -p "${dll_name}"
+    execute_process(COMMAND "${CMAKE_DUMPBIN}" ${CMAKE_DUMPBIN_ARGS} "${dll_name}"
         OUTPUT_VARIABLE output_var
         RESULT_VARIABLE result_var
     )
@@ -47,9 +57,9 @@ function(get_dll_dependencies dll_name output_dlls)
         return()
     endif()
 
-    string(REGEX MATCHALL "[ \t\r\n]+DLL Name: [^\n]+\.dll\n" matches_vars "${output_var}")
+    string(REGEX MATCHALL "${CMAKE_DUMPBIN_REGEXP}" matches_vars "${output_var}")
     foreach(match_line_var ${matches_vars})
-        string(REGEX REPLACE "[ \t\r\n]+DLL Name: ([^\n]+\.dll)\n" "\\1" dll_name_var "${match_line_var}")
+        string(REGEX REPLACE "${CMAKE_DUMPBIN_REGEXP}" "\\1" dll_name_var "${match_line_var}")
         list(APPEND dll_names_var "${dll_name_var}")
     endforeach()
 
@@ -97,17 +107,16 @@ function(get_exception_dll_name output_var)
     }
     ")
     string(RANDOM LENGTH 32 _file_name)
-    set(_file_name "${CMAKE_CURRENT_BINARY_DIR}/${_file_name}")
+    set(_file_full_name "${CMAKE_CURRENT_BINARY_DIR}/${_file_name}")
     try_compile(_compileResultVar
-        SOURCE_FROM_VAR "get_exception_dll_name.cpp" _source
-        COPY_FILE "${_file_name}"
+        SOURCE_FROM_VAR "${_file_name}.cpp" _source
+        COPY_FILE "${_file_full_name}"
         OUTPUT_VARIABLE OUTPUT)
     if (NOT _compileResultVar)
         return()
     endif()
     
-    
-    get_dll_dependencies("${_file_name}" import_dlls)
+    get_dll_dependencies("${_file_full_name}" import_dlls)
     foreach(dll_name ${import_dlls})
         string(REGEX MATCH "^libgcc_s_.+\.dll$" dll_name_var "${dll_name}")
         if (dll_name_var)
@@ -115,7 +124,7 @@ function(get_exception_dll_name output_var)
             break()
         endif()
     endforeach()
-    file(REMOVE "${_file_name}")
+    file(REMOVE "${_file_full_name}")
 endfunction()
 
 function(get_mingw_dlls output_var)
