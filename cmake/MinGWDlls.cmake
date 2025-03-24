@@ -27,9 +27,95 @@ function(get_mingw_dll_path input_var output_var)
     set(${output_var} "${OUTPUT_LIBTEST_FILE_PATH}" PARENT_SCOPE)
 endfunction()
 
-function(get_mingw_dlls output_var)
-    set(${output_var} "" PARENT_SCOPE)
+function(get_dll_dependencies dll_name output_dlls)
+    set(${output_dlls} FALSE PARENT_SCOPE)
 
+    if(NOT EXISTS "${dll_name}")
+        return()
+    endif()
+
+    if(NOT EXISTS "${CMAKE_OBJDUMP}")
+        return()
+    endif()
+
+    execute_process(COMMAND ${CMAKE_OBJDUMP} -p "${dll_name}"
+        OUTPUT_VARIABLE output_var
+        RESULT_VARIABLE result_var
+    )
+
+    if(result_var)
+        return()
+    endif()
+
+    string(REGEX MATCHALL "[ \t\r\n]+DLL Name: [^\n]+\.dll\n" matches_vars "${output_var}")
+    foreach(match_line_var ${matches_vars})
+        string(REGEX REPLACE "[ \t\r\n]+DLL Name: ([^\n]+\.dll)\n" "\\1" dll_name_var "${match_line_var}")
+        list(APPEND dll_names_var "${dll_name_var}")
+    endforeach()
+
+    set(${output_dlls} ${dll_names_var} PARENT_SCOPE)
+endfunction()
+
+function(get_pe_file_arch dll_name output_arch)
+    set(${output_arch} FALSE PARENT_SCOPE)
+    if(NOT EXISTS "${dll_name}")
+        return()
+    endif()
+
+    if(NOT EXISTS "${CMAKE_OBJDUMP}")
+        return()
+    endif()
+
+    execute_process(COMMAND ${CMAKE_OBJDUMP} -a "${dll_name}"
+        OUTPUT_VARIABLE output_var
+        RESULT_VARIABLE result_var
+    )
+    #objdump 32 cant work for 64 pe,so when 32 objdump do with 64 pe return FALSE
+    if(result_var)
+        return()
+    endif()
+
+    string(REGEX MATCH ".+file format [^\n]+-x86-64\n" match_var "${output_var}")
+    if (match_var)
+        set(_arch "x86_64")
+    else()
+        set(_arch "x86")
+    endif()
+    set(${output_arch} ${_arch} PARENT_SCOPE)
+endfunction()
+
+function(get_exception_dll_name output_var)
+    set(${output_var} FALSE PARENT_SCOPE)
+    set(_source "
+    #include <iostream>
+    int main(){
+        try{
+        std::cout << \"test\" << std::endl;
+    }catch(std::exception &excep){
+    }
+        return 0;
+    }
+    ")
+    try_compile(_compileResultVar
+        SOURCE_FROM_VAR "get_exception_dll_name.cpp" _source
+        COPY_FILE "${CMAKE_CURRENT_BINARY_DIR}/get_exception_dll_name.exe"
+        OUTPUT_VARIABLE OUTPUT)
+    if (NOT _compileResultVar)
+        return()
+    endif()
+    get_dll_dependencies("${CMAKE_CURRENT_BINARY_DIR}/get_exception_dll_name.exe" import_dlls)
+    foreach(dll_name ${import_dlls})
+        string(REGEX MATCH "^libgcc_s_.+\.dll$" dll_name_var "${dll_name}")
+        if (dll_name_var)
+            set(${output_var} ${dll_name_var} PARENT_SCOPE)
+            break()
+        endif()
+    endforeach()
+    file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/get_exception_dll_name.exe")
+endfunction()
+
+function(get_mingw_dlls output_var)
+    set(${output_var} FALSE PARENT_SCOPE)
     if(NOT MINGW)
         return()
     endif()
@@ -45,32 +131,38 @@ function(get_mingw_dlls output_var)
 
     file(GLOB_RECURSE MINGW_DLLS "${MINGW_ARCH_PATH}/*.dll")
 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        get_mingw_dll_path("libgcc_s_seh-1.dll" MINGW_LIBEXCEPT_DLL)
-        get_mingw_dll_path("libstdc++-6.dll" MINGW_LIBCXX_DLL)
-        foreach(MINGW_DLL ${MINGW_DLLS})
-            cmake_path(GET MINGW_DLL FILENAME MINGW_DLL_NAME)
-            if(NOT MINGW_LIBEXCEPT_DLL AND MINGW_DLL_NAME STREQUAL "libgcc_s_seh-1.dll")
-                set(MINGW_LIBEXCEPT_DLL ${MINGW_DLL})
-            elseif(NOT MINGW_LIBCXX_DLL AND MINGW_DLL_NAME STREQUAL "libstdc++-6.dll")
-                set(MINGW_LIBCXX_DLL ${MINGW_DLL})
-            endif()
-        endforeach()
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        foreach(MINGW_DLL ${MINGW_DLLS})
-            cmake_path(GET MINGW_DLL FILENAME MINGW_DLL_NAME)
-            if(MINGW_DLL_NAME STREQUAL "libunwind.dll")
-                set(MINGW_LIBEXCEPT_DLL ${MINGW_DLL})
-            elseif(MINGW_DLL_NAME STREQUAL "libc++.dll")
-                set(MINGW_LIBCXX_DLL ${MINGW_DLL})
-            endif()
-        endforeach()
+    # set(MINGW_LIBEXCEPT_DLL_NAME "libgcc_s_seh-1.dll")
+    # if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    #     set(MINGW_LIBEXCEPT_DLL_NAME "libgcc_s_sjlj-1.dll")
+    # endif()
+    get_exception_dll_name(MINGW_LIBEXCEPT_DLL_NAME)
+    set(MINGW_LIBCXX_DLL_NAME "libstdc++-6.dll")
+    set(MINGW_LIBWINPTHREAD_DLL_NAME "libwinpthread-1.dll")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(MINGW_LIBEXCEPT_DLL_NAME "libunwind.dll")
+        set(MINGW_LIBCXX_DLL_NAME "libc++.dll")
     endif()
 
+    get_mingw_dll_path(${MINGW_LIBEXCEPT_DLL_NAME} MINGW_LIBEXCEPT_DLL)
+    get_mingw_dll_path(${MINGW_LIBCXX_DLL_NAME} MINGW_LIBCXX_DLL)
+    get_mingw_dll_path(${MINGW_LIBWINPTHREAD_DLL_NAME} MINGW_LIBWINPTHREAD_DLL)
+
+    set(current_arch "x86")
+    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(current_arch "x86_64")
+    endif()
     foreach(MINGW_DLL ${MINGW_DLLS})
-        cmake_path(GET MINGW_DLL FILENAME MINGW_DLL_NAME)
-        if(MINGW_DLL_NAME STREQUAL "libwinpthread-1.dll")
-            set(MINGW_LIBWINPTHREAD_DLL ${MINGW_DLL})
+        message("DLL: ${MINGW_DLL}")
+        get_pe_file_arch("${MINGW_DLL}" file_arch)
+        if (current_arch STREQUAL file_arch)
+            cmake_path(GET MINGW_DLL FILENAME MINGW_DLL_NAME)
+            if((NOT MINGW_LIBEXCEPT_DLL) AND MINGW_DLL_NAME STREQUAL MINGW_LIBEXCEPT_DLL_NAME)
+                set(MINGW_LIBEXCEPT_DLL ${MINGW_DLL})
+            elseif((NOT MINGW_LIBCXX_DLL) AND MINGW_DLL_NAME STREQUAL MINGW_LIBCXX_DLL_NAME)
+                set(MINGW_LIBCXX_DLL ${MINGW_DLL})
+            elseif((NOT MINGW_LIBWINPTHREAD_DLL) AND MINGW_DLL_NAME STREQUAL MINGW_LIBWINPTHREAD_DLL_NAME)
+                set(MINGW_LIBWINPTHREAD_DLL ${MINGW_DLL})
+            endif()
         endif()
     endforeach()
 
